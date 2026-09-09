@@ -1,0 +1,12 @@
+{
+  "name": "week1-app",
+  "version": "1.0.0",
+  "description": "도커/쿠버 3주 실습 - Week 1 샘플 웹앱",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
