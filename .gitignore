@@ -1,0 +1,15 @@
+# Windows 탐색기로 WSL에 복사할 때 생기는 메타데이터 파일
+*Zone.Identifier
+
+# Node
+node_modules/
+
+# Terraform (로컬 state·플러그인 캐시. .terraform.lock.hcl은 커밋하는 게 권장이라 제외 안 함)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# 비밀값
+.env
+*.pem

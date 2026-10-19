@@ -1,43 +1,66 @@
-# CLAUDE.md
+# PLAN.md — 3-Week Docker/Kubernetes Hands-on Roadmap
 
-이 파일은 Claude Code가 이 프로젝트(도커/쿠버네티스 3주 실습 학습)에서 참고하는 컨텍스트다.
+> **Goal:** Deploy a container app built locally to a local Kubernetes cluster (kind), and run through the full pipeline once, including CI/CD, IaC, and monitoring.
+> **Strategy:** Not aiming for mastery. "Run through the whole flow once to get a feel for what each piece is." Depth comes through repetition.
+> **Environment:** Windows + WSL2 (Ubuntu) + Rancher Desktop + kind — **local only** (no permissions on the company GCP project)
 
-## 프로젝트 목적
+---
 
-도커와 쿠버네티스를 직접 구성해보며 익히는 3주 실습 학습. 최종 목표는 로컬에서 만든 컨테이너 앱을 GCP(GKE)에 올리고 CI/CD·모니터링까지 전체 파이프라인을 한 바퀴 돌려보는 것.
+## Phase 0 — Environment Setup
 
-## 학습자 배경
+- [x] Enable WSL2 + install Ubuntu (`wsl --install`)
+- [x] Install Rancher Desktop (WSL2 backend, dockerd/moby mode) → verify `docker version` works (built-in k8s turned off, standardizing on kind)
+- [x] Install tools inside WSL Ubuntu: `kubectl`, `kind`, `helm` (kubectl/helm provided by Rancher Desktop, kind v0.33.0 installed separately)
+- [x] Install `gcloud` CLI + gke-gcloud-auth-plugin (not used in this study)
+- [x] `kind create cluster --name study` → verified `study-control-plane Ready` (k8s v1.37.0)
+- [ ] Check Rancher Desktop WSL memory allocation — **8GB+ recommended** (Week 3 runs Argo CD + Prometheus at the same time)
+- [ ] Add `.gitignore` + clean up `Zone.Identifier` files
 
-- iOS 개발자(~1.5년) 출신, 현재 클라우드 MSP의 Google Cloud SA 신입 (2개월차, 수습 중)
-- 비전공자(경영학 전공) → 부트캠프로 개발 입문
-- 클라우드/인프라는 이제 막 시작하는 단계
-- 터미널·리눅스 명령어에 아직 익숙하지 않음
+## Week 1 — Containers & Docker
 
-## 이렇게 도와줘 (행동 원칙)
+- [x] Understand what a container is (vs. a VM) — namespaces/cgroups, image vs. container, shared kernel
+- [x] Basics of image pull / container run / logs / exec — with nginx: run -d -p, logs, exec -it, top, verified the ephemeral filesystem
+- [ ] Write a Dockerfile for a simple web app (Node) ← **start here next session**. server.js, package.json, and .dockerignore are ready in `week1-app/`. Write the Dockerfile myself → `docker build -t week1-app:1.0 .` → run → verify with curl
+- [ ] Reduce image size with a **multi-stage build**
+- [ ] Get a feel for image tagging and versioning
+- [ ] Run a **local registry** (`registry:2` container) and push/pull — experience the "push to a registry → cluster pulls from it" flow (replaces Artifact Registry)
+- [ ] (Review) Ask Claude Code again about anything that confused me this week
 
-- **초보자 눈높이로 설명해.** 인프라/클라우드 용어는 처음 나올 때 풀어서.
-- **일단 돌아가게 만드는 걸 우선**하되, 고쳐줄 때는 "왜 이렇게 했는지" 이유를 꼭 한 줄이라도 붙여줘. 남의 답이 아니라 학습자의 지식이 되게.
-- 에러가 나면 로그·명령 출력을 같이 읽고 원인부터 짚어줘.
-- 명령어를 줄 때는 복붙만 하지 않게, 각 명령이 뭘 하는지 짧게 설명.
-- **캐주얼한 한국어 반말**, 직설적이고 솔직하게. 돌려 말하지 마.
-- SA 커리어에 연결되는 포인트(관리형 vs 셀프호스팅, 실무에서 뭘 쓰는지 등)가 있으면 짚어줘.
+## Week 2 — Kubernetes (kind)
 
-## 환경
+- [ ] **Recreate the kind cluster as multi-node** with a config file (`kind-config.yaml`) — 1 control-plane + 2 workers, connected to the local registry (see the local registry page in the kind docs)
+- [ ] Core objects: Pod / Deployment / ReplicaSet — kill one worker node with `docker stop` and watch Pods get rescheduled
+- [ ] Service (ClusterIP / NodePort / LoadBalancer differences) — for LoadBalancer, get a real EXTERNAL-IP with **cloud-provider-kind**
+- [ ] Separate configuration with ConfigMap / Secret
+- [ ] Ingress concept → external exposure with **Gateway API** (not using ingress-nginx since it's been retired; implementation e.g. Envoy Gateway)
+- [ ] Deploy the Week 1 app to the kind cluster → complete one code → Docker → Kubernetes cycle
+- [ ] (Optional) Install **Knative** and try a serverless deployment — Cloud Run is based on the Knative API, so the concepts carry over directly
+- [ ] (SA point) List **what GKE does for me** out of everything I did by hand this week
 
-- OS: **Windows** (WSL2 Ubuntu 위에서 실습)
-- 컨테이너 엔진: Rancher Desktop (무료, WSL2 통합) — Docker Desktop은 라이선스 이슈로 안 씀
-- 로컬 쿠버네티스: kind (Kubernetes IN Docker)
-- 기타 도구: kubectl, helm, gcloud CLI
-- 클라우드: GCP ($300 크레딧 / 90일, GKE Autopilot 무료 클러스터 1개/월, Cloud Run Always Free)
+## Week 3 — CI/CD & IaC & Monitoring & Integration
 
-## GCP 주의사항 (반복 상기)
+- [ ] Push the code to a GitHub repository
+- [ ] **GitHub Actions**: automate push → image build → push to **GHCR** (GitHub Container Registry)
+- [ ] **Terraform** intro: codify "cluster creation + Argo CD installation" with the `kind` + `helm` providers — init / plan / apply / destroy, the concept of state
+- [ ] **Argo CD** GitOps deployment (Git is the deployment state). Images pulled from GHCR (simple if the package is public; imagePullSecret if private)
+- [ ] Install Prometheus + Grafana with `kube-prometheus-stack` (Helm)
+- [ ] Check cluster and app metrics on a Grafana dashboard
+- [ ] A few very basic PromQL queries
+- [ ] 🎯 **Connect everything**: code push → CI → CD → reflected in Grafana, as one flow
+- [ ] Re-practice weak spots + organize concepts for interview/real-world questions
 
-- 계정 만들면 **가장 먼저 예산 알림을 $1로 설정** (과금 사고 방지)
-- $300 크레딧의 90일 카운트는 결제 계정 생성 시점부터 시작됨
-- 실습 끝나면 GKE 클러스터·로드밸런서 등 리소스 꼭 삭제 (크레딧 절약)
-- Always Free 리전(us-west1, us-central1, us-east1) 우선 사용
+> 💡 Splitting roles as "Terraform for infrastructure (cluster, foundational tools), Argo CD for app deployment" is a common pattern in practice.
 
-## 진행 방식
+---
 
-- 상세 일정은 PLAN.md 참고. 체크박스로 진도 관리 중.
-- "일단 큰 그림 한 바퀴 → 반복하며 깊이" 전략. 3주 안에 마스터가 아니라 전체 파이프라인 감 잡는 게 목표.
+## Not Now (Later)
+
+- Jenkins (skim the concept and history only — for interviews)
+- Advanced PromQL
+- minikube / k3d (standardizing on kind)
+- Writing Helm charts myself
+
+## Candidate Next Steps After Completion
+
+- IAM / permission management (core of SA work)
+- Tie into PCA (Professional Cloud Architect) prep
