@@ -13,3 +13,6 @@ crash.log
 # 비밀값
 .env
 *.pem
+
+# 개인 TIL 노트 (커밋 안 함)
+til/
